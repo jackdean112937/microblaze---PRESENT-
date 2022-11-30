@@ -72,14 +72,16 @@ int main(void)
 	while(!read_reg(CONFIG_REG)) {} // waiting CPU for enable encryption
 	// when config reg is set to 1, set status register to busy
 	write_reg(STATUS_REG, 1);
-	//key array of 2 u64 value  represented as low bit and high bit
-	u64 key[2] = {-1, 0xffff};
-	u64 text[1] = {0};
+	//key array of 2 u64 value  represented as low bit and high bit which stored in key register in order from highest bit to lowest
+	u64 key[2] = {(read_reg(KEY0) << 32) | read_reg(KEY1), read_reg(KEY2)};
+	// 64 bit plain text store in 2 PLAIN_TEXT register as the lowest and highest part 
+	u64 text[1] = {(read_reg(PLAIN_TEXT0) << 32) | read_reg(PLAIN_TEXT1) };
 	u64 encrypted = present_encrypt(text, key);
-	xil_printf("Result is %08llx",  encrypted >> 32);
-	xil_printf("%08llx", encrypted & 0xffffffff);
-	write_reg(CIPHER_TEXT0, encrypted >> 32);
-	write_reg(CIPHER_TEXT1, encrypted & 0xffffffff);
+	//xil_printf("Result is %08llx",  encrypted >> 32);
+	//xil_printf("%08llx", encrypted & 0xffffffff);
+	// write to the output register the encryption text
+	write_reg(CIPHER_TEXT0, encrypted >> 32);         // 32 first bit
+	write_reg(CIPHER_TEXT1, encrypted & 0xffffffff);  // 32 last bit
 	//notify the CPU for the encrypted text
 	write_reg(STATUS_REG, 0);
 	return 0;
